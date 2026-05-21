@@ -12,19 +12,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Send text to Discord
+      - name: Send text in chunks
         run: |
-          # Надійне кодування тексту файлу в безпечний формат Base64, щоб уникнути конфліктів із символами
-          cat rules.txt.txt > raw_rules.txt
-          
-          # Надсилаємо чистий файл через curl за допомогою правильного JSON-форматування
-          NODE_SUBMT=$(node -e '
-            const fs = require("fs");
-            const text = fs.readFileSync("raw_rules.txt", "utf8");
-            console.log(JSON.stringify({ content: text }));
-          ')
-          
-          curl -H "Content-Type: application/json" \
-               -X POST \
-               -d "$NODE_SUBMT" \
-               "https://discord.com/api/webhooks/1486303299719139348/5MvXc8QjjAyi-4PWow5m1F2ZlUtp9uW7UyOUUS2p9NRk662GSYRpcIIkjlH6oN9tjXyR"
+          NODE_SCRIPT=$(cat << 'EOF'
+          const fs = require("fs");
+          const crypto = require("https");
+
+          try {
+            const text = fs.readFileSync("rules.txt.txt", "utf8");
+            const lines = text.split("\n");
+            let chunk = "";
+            const webhookUrl = "https://discord.com/api/webhooks/1486303299719139348/5MvXc8QjjAyi-4PWow5m1F2ZlUtp9uW7UyOUUS2p9NRk662GSYRpcIIkjlH6oN9tjXyR";
+
+            const send = (msg) => {
+              return new Promise((resolve) => {
+                const req = crypto.request(webhookUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": application/json" }
+                }, () => resolve());
+                req.write(JSON.stringify({ content: msg }));
+                req.end();
+              });
+            };
+
+            async function run() {
+              for (const line of lines) {
+                if ((chunk + line).length > 1900) {
+                  await send(chunk);
+                  chunk = "";
+                }
+                chunk += line + "\n";
+              }
+              if (chunk.trim().length > 0) {
+                await send(chunk);
+              }
+            }
+            run();
+          } catch (e) {
+            console.error(e);
+            process.exit(1);
+          }
+          EOF
+          )
+          node -e "$NODE_SCRIPT"
