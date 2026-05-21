@@ -1,0 +1,22 @@
+name: Send Rules to Discord
+
+on:
+  push:
+    paths:
+      - 'rules.txt.txt'
+
+jobs:
+  send-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send text to Discord
+        run: |
+          TEXT=$(cat rules.txt.txt | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
+          
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"content\": \"$TEXT\"}" \
+               "https://discord.com/api/webhooks/1486303299719139348/5MvXc8QjjAyi-4PWow5m1F2ZlUtp9uW7UyOUUS2p9NRk662GSYRpcIIkjlH6oN9tjXyR"
