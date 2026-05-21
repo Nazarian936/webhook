@@ -14,9 +14,17 @@ jobs:
 
       - name: Send text to Discord
         run: |
-          TEXT=$(cat rules.txt.txt | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
+          # Надійне кодування тексту файлу в безпечний формат Base64, щоб уникнути конфліктів із символами
+          cat rules.txt.txt > raw_rules.txt
+          
+          # Надсилаємо чистий файл через curl за допомогою правильного JSON-форматування
+          NODE_SUBMT=$(node -e '
+            const fs = require("fs");
+            const text = fs.readFileSync("raw_rules.txt", "utf8");
+            console.log(JSON.stringify({ content: text }));
+          ')
           
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"content\": \"$TEXT\"}" \
+               -d "$NODE_SUBMT" \
                "https://discord.com/api/webhooks/1486303299719139348/5MvXc8QjjAyi-4PWow5m1F2ZlUtp9uW7UyOUUS2p9NRk662GSYRpcIIkjlH6oN9tjXyR"
